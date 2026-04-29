@@ -1,0 +1,10 @@
+# Model / training hyperparameters
+# Passed to ultralytics YOLO.train() as keyword arguments
+
+model: yolov8n.pt       # Base model (nano = fastest on CPU)
+epochs: 50
+imgsz: 640
+batch: 8                # Reduce if you run out of RAM
+workers: 2              # DataLoader workers
+device: cpu             # CPU-only
+patience: 10            # Early stopping patience

@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Virtual Garden AI — 3D Plant Viewer</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Modern Variables & Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #FFF8EC;          /* Off-White */
+  --surface: #FFFFFF;     /* White for cards */
+  --border: #DCCCAC;      /* Beige */
+  --text: #2C352D;        /* Very dark green-grey */
+  --muted: #6B7280;
+  --accent: #546B41;      /* Dark Green */
+  --accent-light: #99AD7A;/* Light Green */
+  --accent-dim: rgba(153, 173, 122, 0.15);
+  --error: #E53E3E;
+  --warn: #DD6B20;
+  --r: 16px;              /* Border radius */
+  --shadow: 0 10px 25px rgba(84, 107, 65, 0.08);
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ── */
+header {
+  padding: 16px 32px; background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02); z-index: 10;
+}
+.logo { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.3rem; color: var(--accent); }
+.dot { width: 10px; height: 10px; background: var(--accent-light); border-radius: 50%; animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .5; transform: scale(.8); } }
+.badge { font-size: .75rem; padding: 4px 12px; background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-light); border-radius: 999px; font-weight: 500; }
+
+/* ── Layout ── */
+.main { display: flex; flex: 1; overflow: hidden; }
+
+/* ── Left panel ── */
+.left {
+  width: 420px; display: flex; flex-direction: column; gap: 20px; padding: 24px;
+  overflow-y: auto; border-right: 1px solid var(--border); background: #FCF5E8;
+  z-index: 5; box-shadow: 2px 0 15px rgba(0,0,0,0.03);
+}
+
+/* ── Upload ── */
+.upload {
+  border: 2px dashed var(--border); border-radius: var(--r); padding: 32px 20px;
+  text-align: center; cursor: pointer; transition: all 0.3s ease; position: relative;
+  background: var(--surface);
+}
+.upload:hover, .upload.drag { border-color: var(--accent-light); background: var(--accent-dim); transform: translateY(-2px); }
+.upload input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.upload-icon { font-size: 2.5rem; margin-bottom: 12px; display: inline-block; }
+.upload strong { font-size: 1.05rem; font-weight: 600; color: var(--accent); display: block; }
+.upload p { color: var(--muted); font-size: .85rem; margin-top: 6px; }
+
+/* ── Preview ── */
+#preview { display: none; border-radius: var(--r); overflow: hidden; border: 1px solid var(--border); box-shadow: var(--shadow); }
+#preview img { width: 100%; max-height: 240px; object-fit: cover; display: block; }
+
+/* ── Loading & Alerts ── */
+.status-box { display: none; align-items: center; gap: 12px; padding: 14px 18px; background: var(--surface); border-radius: var(--r); border: 1px solid var(--border); box-shadow: var(--shadow); font-weight: 500; font-size: .9rem; }
+.spin { width: 20px; height: 20px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.alert { padding: 14px 18px; border-radius: var(--r); font-size: .9rem; display: none; gap: 10px; align-items: flex-start; box-shadow: var(--shadow); font-weight: 500; }
+.alert.warn { background: #FFFAF0; border: 1px solid var(--warn); color: var(--warn); }
+.alert.err { background: #FFF5F5; border: 1px solid var(--error); color: var(--error); }
+.alert.success { background: #F0FFF4; border: 1px solid var(--accent); color: var(--accent); }
+
+/* ── Info card ── */
+#card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 24px; display: none; box-shadow: var(--shadow); transition: all 0.3s ease; }
+.cn { font-size: 1.6rem; font-weight: 700; color: var(--accent); margin-bottom: 4px; letter-spacing: -0.5px; text-transform: capitalize; }
+.sn { font-style: italic; color: var(--muted); font-size: .95rem; margin-bottom: 16px; display: block; }
+.row { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; font-size: .9rem; }
+.lbl { color: var(--muted); min-width: 80px; flex-shrink: 0; font-weight: 500; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; margin-top: 2px;}
+.val { font-weight: 500; }
+.uses { list-style: none; }
+.uses li { padding: 3px 0; font-size: .9rem; line-height: 1.4; }
+.uses li::before { content: '✓'; color: var(--accent-light); margin-right: 8px; font-weight: bold;}
+.conf-hdr { display: flex; justify-content: space-between; font-size: .85rem; font-weight: 600; color: var(--accent); margin: 20px 0 8px; }
+.conf-bg { background: var(--border); border-radius: 999px; height: 8px; overflow: hidden; }
+.conf-fill { height: 100%; border-radius: 999px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); width: 0; background: linear-gradient(90deg, var(--accent-light), var(--accent)); }
+
+/* ── Reset btn ── */
+#resetBtn { padding: 12px 20px; background: var(--surface); color: var(--accent); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; font-size: .95rem; font-weight: 600; transition: all 0.2s; display: none; width: 100%; box-shadow: 0 2px 5px rgba(0,0,0,0.02); margin-top: auto;}
+#resetBtn:hover { border-color: var(--accent); background: var(--accent-dim); transform: translateY(-1px); }
+
+/* ── Right panel ── */
+.right { flex: 1; position: relative; background: radial-gradient(circle at center, #FFFFFF 0%, #F5EFE1 100%); overflow: hidden; }
+#c3d { width: 100%; height: 100%; display: block; cursor: grab; }
+#c3d:active { cursor: grabbing; }
+
+/* ── Overlays ── */
+#overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; background: rgba(255,248,236,0.3); backdrop-filter: blur(8px); transition: opacity 0.3s; z-index: 2;}
+#overlayMsg { color: var(--accent); font-size: 1.1rem; text-align: center; padding: 24px 32px; background: rgba(255,255,255,0.9); border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--shadow); line-height: 1.6; font-weight: 500; pointer-events: auto; max-width: 400px; }
+
+/* ── Reconstruction UI ── */
+#reconstructPanel {
+  position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+  background: rgba(255,248,236,0.85); backdrop-filter: blur(10px); z-index: 3; pointer-events: auto;
+}
+.recon-card {
+  background: var(--surface); padding: 40px; border-radius: var(--r); border: 1px solid var(--border);
+  box-shadow: 0 20px 40px rgba(84, 107, 65, 0.12); width: 100%; max-width: 480px; text-align: center;
+}
+.recon-card h3 { color: var(--accent); font-size: 1.6rem; margin-bottom: 12px; font-weight: 700; }
+.recon-card p { color: var(--muted); font-size: .95rem; line-height: 1.5; margin-bottom: 24px; }
+.recon-card .upload { background: var(--bg); border-color: var(--accent-light); margin-bottom: 20px;}
+.recon-card .upload:hover { border-color: var(--accent); }
+
+/* ── Floating label ── */
+#label3d { position: absolute; pointer-events: none; display: none; transform: translate(-50%,-110%); z-index: 1;}
+.label-pill { background: rgba(255,255,255,0.95); backdrop-filter: blur(6px); border: 1px solid var(--accent-light); border-radius: 12px; padding: 6px 16px; color: var(--accent); font-weight: 700; font-size: .9rem; white-space: nowrap; box-shadow: var(--shadow); position: relative; }
+.label-pill::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: var(--accent-light); border-bottom: none; }
+
+/* ── Status bar ── */
+#status { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: var(--accent); font-size: .85rem; background: rgba(255,255,255,0.9); padding: 8px 18px; border-radius: 999px; border: 1px solid var(--border); pointer-events: none; box-shadow: var(--shadow); display: none; font-weight: 500; z-index: 1;}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span class="dot"></span>Virtual Garden AI</div>
+  <span class="badge">CPU &nbsp;|&nbsp; Premium Three.js</span>
+</header>
+
+<div class="main">
+
+  <!-- ── LEFT PANEL ── -->
+  <div class="left">
+
+    <div class="upload" id="uploadArea">
+      <input type="file" id="fileInput" accept="image/*"/>
+      <div class="upload-icon">🌿</div>
+      <strong>Drop a plant photo here</strong>
+      <p>or click to browse &mdash; JPEG / PNG</p>
+    </div>
+
+    <div id="preview"><img id="previewImg" src="" alt=""/></div>
+
+    <div class="status-box" id="loading">
+      <div class="spin"></div>
+      <span id="loadTxt">Detecting plant&hellip;</span>
+    </div>
+
+    <div class="alert warn" id="warnBox"><span>⚠️</span><span id="warnTxt"></span></div>
+    <div class="alert err"  id="errBox"><span>❌</span><span id="errTxt"></span></div>
+
+    <div id="card">
+      <div class="cn" id="cn">—</div>
+      <div class="sn" id="sn"></div>
+      <div class="row"><span class="lbl">Family</span><span class="val" id="fam">—</span></div>
+      <div class="row"><span class="lbl">Local name</span><span class="val" id="loc">—</span></div>
+      <div class="row" style="flex-direction: column;">
+        <span class="lbl" style="margin-bottom: 6px;">Uses</span>
+        <ul class="uses" id="uses"></ul>
+      </div>
+      <div class="conf-hdr"><span>Confidence</span><span id="confVal">—</span></div>
+      <div class="conf-bg"><div class="conf-fill" id="confBar"></div></div>
+    </div>
+
+    <button id="resetBtn">↻ Upload New Photo</button>
+
+  </div><!-- /left -->
+
+  <!-- ── RIGHT PANEL ── -->
+  <div class="right">
+    <canvas id="c3d"></canvas>
+
+    <div id="overlay">
+      <div id="overlayMsg">Upload a plant photo on the left<br>to explore its 3D model</div>
+    </div>
+
+    <!-- ── NE-RF RECONSTRUCTION PANEL ── -->
+    <div id="reconstructPanel">
+      <div class="recon-card">
+        <h3>3D Model Not Available</h3>
+        <p>This plant is recognized, but hasn't been scanned into 3D yet. Upload a short video showing the plant from multiple angles to generate its 3D NeRF model.</p>
+        
+        <div class="upload" id="videoUploadArea">
+          <input type="file" id="videoInput" accept="video/mp4,video/quicktime,video/webm"/>
+          <div class="upload-icon">🎥</div>
+          <strong>Upload Plant Video</strong>
+          <p>MP4 / MOV (Max 100MB)</p>
+        </div>
+
+        <div class="status-box" id="reconLoading" style="justify-content: center;">
+          <div class="spin"></div>
+          <span>Uploading & Initializing...</span>
+        </div>
+
+        <div class="alert success" id="reconSuccess" style="text-align: left;">
+          <span>✅</span>
+          <span>Reconstruction successfully queued! Generating a 3D model takes about 30-90 minutes. Check back later.</span>
+        </div>
+        <div class="alert err" id="reconErr"></div>
+      </div>
+    </div>
+
+    <div id="label3d"><div class="label-pill" id="labelTxt">Plant</div></div>
+    <div id="status"></div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- Three.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+<script>
+/* ================================================================
+   Config
+================================================================ */
+const API = 'http://localhost:8000';
+const LOW_CONF = 0.5;
+let detectedSpecies = null; // Track current detected species for reconstruction
+
+/* ================================================================
+   DOM refs
+================================================================ */
+const uploadArea  = document.getElementById('uploadArea');
+const fileInput   = document.getElementById('fileInput');
+const preview     = document.getElementById('preview');
+const previewImg  = document.getElementById('previewImg');
+const loading     = document.getElementById('loading');
+const loadTxt     = document.getElementById('loadTxt');
+const warnBox     = document.getElementById('warnBox');
+const warnTxt     = document.getElementById('warnTxt');
+const errBox      = document.getElementById('errBox');
+const errTxt      = document.getElementById('errTxt');
+const card        = document.getElementById('card');
+const resetBtn    = document.getElementById('resetBtn');
+const overlay     = document.getElementById('overlay');
+const overlayMsg  = document.getElementById('overlayMsg');
+const label3d     = document.getElementById('label3d');
+const labelTxt    = document.getElementById('labelTxt');
+const statusBar   = document.getElementById('status');
+const canvas      = document.getElementById('c3d');
+
+// Reconstruction Refs
+const reconPanel      = document.getElementById('reconstructPanel');
+const videoUploadArea = document.getElementById('videoUploadArea');
+const videoInput      = document.getElementById('videoInput');
+const reconLoading    = document.getElementById('reconLoading');
+const reconSuccess    = document.getElementById('reconSuccess');
+const reconErr        = document.getElementById('reconErr');
+
+/* ================================================================
+   Three.js scene
+================================================================ */
+let scene, camera, renderer, controls, currentModel;
+let labelPos = new THREE.Vector3(0, 1.5, 0);
+
+(function initThree() {
+  scene    = new THREE.Scene();
+  // Don't set background color, so canvas remains transparent and CSS background shows through
+  scene.background = null; 
+
+  const W = canvas.parentElement.clientWidth;
+  const H = canvas.parentElement.clientHeight;
+
+  camera = new THREE.PerspectiveCamera(50, W / H, 0.01, 200);
+  camera.position.set(0, 1, 4);
+
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(W, H);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+
+  // Lights
+  scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+  sun.position.set(5, 10, 7);
+  scene.add(sun);
+  const fill = new THREE.DirectionalLight(0xdcccac, 0.4); // Beige fill light
+  fill.position.set(-4, 0, -4);
+  scene.add(fill);
+
+  // Grid
+  const grid = new THREE.GridHelper(10, 20, 0x99ad7a, 0xdcccac);
+  grid.position.y = -1;
+  grid.material.opacity = 0.4;
+  grid.material.transparent = true;
+  scene.add(grid);
+
+  // Controls
+  controls = new THREE.OrbitControls(camera, canvas);
+  controls.enableDamping   = true;
+  controls.dampingFactor   = 0.05;
+  controls.minDistance     = 0.3;
+  controls.maxDistance     = 20;
+  controls.autoRotate      = true;
+  controls.autoRotateSpeed = 1.0;
+
+  let timer;
+  controls.addEventListener('start', () => {
+    clearTimeout(timer);
+    controls.autoRotate = false;
+  });
+  controls.addEventListener('end', () => {
+    timer = setTimeout(() => { controls.autoRotate = true; }, 3000);
+  });
+
+  window.addEventListener('resize', () => {
+    const W2 = canvas.parentElement.clientWidth;
+    const H2 = canvas.parentElement.clientHeight;
+    camera.aspect = W2 / H2;
+    camera.updateProjectionMatrix();
+    renderer.setSize(W2, H2);
+  });
+
+  (function loop() {
+    requestAnimationFrame(loop);
+    controls.update();
+    renderer.render(scene, camera);
+    syncLabel();
+  })();
+})();
+
+function syncLabel() {
+  if (!currentModel || label3d.style.display === 'none') return;
+  const v = labelPos.clone().project(camera);
+  const W = canvas.parentElement.clientWidth;
+  const H = canvas.parentElement.clientHeight;
+  const x = (v.x * 0.5 + 0.5) * W;
+  const y = (v.y * -0.5 + 0.5) * H;
+  label3d.style.opacity = v.z > 1 ? '0' : '1';
+  label3d.style.left = x + 'px';
+  label3d.style.top  = (y - 8) + 'px';
+}
+
+/* ================================================================
+   Load GLB
+================================================================ */
+function loadGLB(species, commonName) {
+  if (currentModel) { scene.remove(currentModel); currentModel = null; }
+  label3d.style.display = 'none';
+  setOverlay('Loading 3D model\u2026');
+  setStatus('');
+
+  new THREE.GLTFLoader().load(
+    `${API}/models/${species}.glb`,
+    gltf => {
+      currentModel = gltf.scene;
+      const box    = new THREE.Box3().setFromObject(currentModel);
+      const size   = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      const scale  = 2.0 / Math.max(size.x, size.y, size.z);
+      currentModel.scale.setScalar(scale);
+      currentModel.position.sub(center.multiplyScalar(scale));
+      currentModel.position.y += 0.1;
+      scene.add(currentModel);
+
+      labelPos.set(0, size.y * scale * 0.5 + 0.65, 0);
+      labelTxt.textContent  = commonName;
+      label3d.style.display = 'block';
+
+      camera.position.set(0, size.y * scale * 0.4, size.z * scale * 3);
+      controls.target.set(0, 0, 0);
+      controls.update();
+
+      hideOverlay();
+      setStatus('Model ready \u2014 drag to rotate \u00b7 scroll to zoom');
+    },
+    xhr => {
+      if (xhr.total > 0) {
+        setOverlay('Loading 3D model\u2026 ' + Math.round(xhr.loaded / xhr.total * 100) + '%');
+      }
+    },
+    err => {
+       showReconstructPanel();
+    }
+  );
+}
+
+/* ================================================================
+   Upload + detect flow
+================================================================ */
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+
+  // Preview
+  const reader = new FileReader();
+  reader.onload = e => { previewImg.src = e.target.result; preview.style.display = 'block'; };
+  reader.readAsDataURL(file);
+
+  // Reset alerts / card
+  hide(warnBox); hide(errBox); hide(card); hide(resetBtn); hide(reconPanel);
+  show(loading, 'flex'); loadTxt.textContent = 'Detecting plant\u2026';
+
+  const fd = new FormData();
+  fd.append('file', file);
+
+  fetch(`${API}/detect`, { method: 'POST', body: fd })
+    .then(r => {
+      if (!r.ok) return r.json().then(d => { throw new Error(d.detail || 'Server error ' + r.status); });
+      return r.json();
+    })
+    .then(data => {
+      hide(loading);
+      show(resetBtn);
+
+      if (data.species === 'unknown' || data.confidence < LOW_CONF) {
+        showWarn('Plant not recognised \u2014 try a clearer, closer photo');
+        setOverlay('Upload a plant photo on the left\nto explore its 3D model');
+        return;
+      }
+
+      detectedSpecies = data.species;
+      populateCard(data);
+      show(card);
+
+      if (data.glb_url) {
+        loadGLB(data.species, data.info.common_name);
+      } else {
+        hideOverlay();
+        showReconstructPanel();
+      }
+    })
+    .catch(e => {
+      hide(loading);
+      show(resetBtn);
+      if (e.message.includes('fetch') || e.message.toLowerCase().includes('network') || e.message.includes('Failed')) {
+        showErr('Cannot connect to server \u2014 is it running on port 8000?');
+      } else {
+        showErr(e.message || 'Unexpected error');
+      }
+    });
+}
+
+function populateCard(data) {
+  const info = data.info || {};
+  document.getElementById('cn').textContent  = info.common_name    || data.species;
+  document.getElementById('sn').textContent  = info.scientific_name || '';
+  document.getElementById('fam').textContent = info.family          || '\u2014';
+  document.getElementById('loc').textContent = info.local_name      || '\u2014';
+
+  const ul = document.getElementById('uses');
+  ul.innerHTML = '';
+  (info.uses || '').split(',').forEach(u => {
+    const li = document.createElement('li');
+    li.textContent = u.trim();
+    ul.appendChild(li);
+  });
+
+  const pct = Math.round(data.confidence * 100);
+  document.getElementById('confVal').textContent = pct + '%';
+  const bar  = document.getElementById('confBar');
+  bar.style.width = pct + '%';
+}
+
+/* ================================================================
+   Reconstruction Flow
+================================================================ */
+function showReconstructPanel() {
+    hideOverlay();
+    show(reconPanel, 'flex');
+    show(videoUploadArea);
+    hide(reconLoading);
+    hide(reconSuccess);
+    hide(reconErr);
+}
+
+function handleVideoFile(file) {
+    if (!file || !file.type.startsWith('video/')) {
+        show(reconErr, 'flex'); reconErr.innerHTML = '<span>❌</span> Please upload a valid video file.'; return;
+    }
+    
+    // Check file size (max 100MB)
+    if (file.size > 100 * 1024 * 1024) {
+        show(reconErr, 'flex'); reconErr.innerHTML = '<span>❌</span> Video is too large. Max size is 100MB.'; return;
+    }
+
+    hide(videoUploadArea);
+    hide(reconErr);
+    show(reconLoading, 'flex');
+
+    const fd = new FormData();
+    fd.append('file', file);
+
+    // Call /reconstruct endpoint
+    fetch(`${API}/reconstruct?species=${detectedSpecies}`, { method: 'POST', body: fd })
+      .then(r => {
+        if (!r.ok) return r.json().then(d => { throw new Error(d.detail || 'Server error ' + r.status); });
+        return r.json();
+      })
+      .then(data => {
+         hide(reconLoading);
+         show(reconSuccess, 'flex');
+      })
+      .catch(e => {
+         hide(reconLoading);
+         show(videoUploadArea);
+         show(reconErr, 'flex');
+         reconErr.innerHTML = `<span>❌</span> Error starting reconstruction: ${e.message}`;
+      });
+}
+
+/* ================================================================
+   Event wiring
+================================================================ */
+// Image Upload
+uploadArea.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+
+uploadArea.addEventListener('dragover',  e => { e.preventDefault(); uploadArea.classList.add('drag'); });
+uploadArea.addEventListener('dragleave', ()  => uploadArea.classList.remove('drag'));
+uploadArea.addEventListener('drop',      e  => {
+  e.preventDefault();
+  uploadArea.classList.remove('drag');
+  handleFile(e.dataTransfer.files[0]);
+});
+
+// Video Upload
+videoUploadArea.addEventListener('click', () => videoInput.click());
+videoInput.addEventListener('change', e => handleVideoFile(e.target.files[0]));
+videoUploadArea.addEventListener('dragover',  e => { e.preventDefault(); videoUploadArea.classList.add('drag'); });
+videoUploadArea.addEventListener('dragleave', ()  => videoUploadArea.classList.remove('drag'));
+videoUploadArea.addEventListener('drop',      e  => {
+  e.preventDefault();
+  videoUploadArea.classList.remove('drag');
+  handleVideoFile(e.dataTransfer.files[0]);
+});
+
+resetBtn.addEventListener('click', () => {
+  // Reset UI
+  previewImg.src = '';
+  hide(preview); hide(loading); hide(warnBox); hide(errBox); hide(card); hide(resetBtn);
+  uploadArea.style.display = '';
+  fileInput.value = '';
+  detectedSpecies = null;
+
+  // Reset 3D
+  if (currentModel) { scene.remove(currentModel); currentModel = null; }
+  label3d.style.display = 'none';
+  hide(reconPanel);
+  setOverlay('Upload a plant photo on the left\nto explore its 3D model');
+  setStatus('');
+
+  // Reset confidence bar width
+  const bar = document.getElementById('confBar');
+  bar.style.width = '0';
+});
+
+/* ================================================================
+   UI helpers
+================================================================ */
+function show(el, display) { el.style.display = display || 'block'; }
+function hide(el)           { el.style.display = 'none'; }
+function showWarn(msg)      { show(warnBox, 'flex'); warnTxt.textContent = msg; }
+function showErr(msg)       { show(errBox,  'flex'); errTxt.textContent  = msg; }
+
+function setOverlay(msg) {
+  overlay.style.display    = 'flex';
+  overlayMsg.innerHTML     = msg.replace('\n', '<br>');
+}
+function hideOverlay()      { overlay.style.display = 'none'; }
+
+function setStatus(msg) {
+  if (msg) { statusBar.textContent = msg; statusBar.style.display = 'block'; }
+  else      { statusBar.style.display = 'none'; }
+}
+</script>
+</body>
+</html>

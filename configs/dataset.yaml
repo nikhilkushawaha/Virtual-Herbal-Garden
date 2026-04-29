@@ -1,0 +1,18 @@
+# Dataset configuration for YOLOv8 plant detection
+# Update paths and class names to match your actual dataset
+
+path: data/dataset          # Root path to dataset (relative to project root)
+train: images/train         # Training images (relative to 'path')
+val:   images/val           # Validation images (relative to 'path')
+test:  images/test          # Test images (optional)
+
+# Number of classes
+nc: 5
+
+# Class names (replace with actual plant species)
+names:
+  0: rose
+  1: sunflower
+  2: tulip
+  3: daisy
+  4: orchid

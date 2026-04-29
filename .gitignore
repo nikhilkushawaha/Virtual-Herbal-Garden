@@ -1,0 +1,76 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+*.pyo
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.env
+.venv
+venv/
+env/
+*.env
+
+# PyTest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Model weights & exports (large binary files)
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.glb
+*.ply
+*.obj
+
+# Project data (managed locally or via Roboflow)
+data/
+models/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Node.js / Viewer frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp/
+.pnp.js
+.yarn/install-state.gz
+dist/
+.next/
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# COLMAP outputs
+*.db
+sparse/
+dense/
+
+# Misc
+*.tmp
+*.bak

@@ -1,0 +1,33 @@
+# Virtual Garden AI - Python Dependencies
+# CPU-only environment (no CUDA)
+
+# Object Detection (YOLOv8)
+ultralytics>=8.0.0
+
+# Dataset management
+roboflow
+
+# Deep Learning (CPU-only — no +cu118 or any CUDA index URL)
+torch>=2.0.0
+torchvision
+
+# Web API
+fastapi>=0.110.0
+uvicorn[standard]
+python-multipart
+
+# Image Processing
+pillow
+opencv-python
+numpy
+
+# 3D Reconstruction
+open3d
+trimesh[easy]
+
+# Scientific Computing
+scipy
+scikit-image
+
+# Utilities
+tqdm
