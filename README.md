@@ -4,6 +4,12 @@ An end-to-end pipeline that detects plant species via YOLOv8, reconstructs them 
 
 ---
 
+## 📸 UI Preview
+
+![Virtual Garden AI – User Interface](UI.png)
+
+---
+
 ## 📋 Prerequisites
 
 | Tool | Version | Notes |
@@ -20,7 +26,7 @@ An end-to-end pipeline that detects plant species via YOLOv8, reconstructs them 
 
 ```bash
 # 1. Clone the repository
-git clone <repo-url>
+git clone https://github.com/nikhilkushawaha/Virtual-Herbal-Garden.git
 cd virtualgarden
 
 # 2. Create a virtual environment (recommended)
@@ -32,6 +38,19 @@ pip install -r requirements.txt
 ```
 
 > ⚠️ Do **not** install `torch` with a `+cu118` or any CUDA index URL — this project targets CPU-only environments.
+
+---
+
+## 🧪 Training Resources (Google Colab)
+
+The YOLOv8 model was trained on Google Colab using a T4 GPU. The Colab notebooks, training configs, and result outputs (confusion matrix, mAP curves, validation predictions) are available in the Drive folder below:
+
+📁 **[Open Training Folder on Google Drive](https://drive.google.com/drive/folders/1_qSfNRRtpCLDDe5sm66W-2PQUi6TKxru?usp=sharing)**
+
+The folder contains:
+- `train.ipynb` — full YOLOv8 training notebook
+- `results/` — mAP curves, confusion matrix, per-class AP scores
+- `best.pt` — final trained model weights
 
 ---
 
@@ -66,14 +85,14 @@ python reconstruction/preprocess.py --video path/to/plant_video.mp4
 Run COLMAP sparse reconstruction (ensure `colmap` is in `PATH`):
 
 ```bash
-python reconstruction/colmap_runner.py --scene data/scenes/rose
+python reconstruction/colmap_runner.py --scene data/scenes/aloevera
 ```
 
 Train NeRF and export a `.glb` mesh:
 
 ```bash
-python reconstruction/nerf_train.py --scene data/scenes/rose
-python reconstruction/export_mesh.py --scene data/scenes/rose
+python reconstruction/nerf_train.py --scene data/scenes/aloevera
+python reconstruction/export_mesh.py --scene data/scenes/aloevera
 ```
 
 ---
@@ -120,6 +139,7 @@ virtualgarden/
 │   └── run_all.py        # Master pipeline orchestrator
 ├── tests/              # Unit & integration tests
 ├── viewer/             # Web-based 3D viewer (Three.js)
+├── UI.png              # UI screenshot
 ├── README.md           # Project documentation
 └── requirements.txt    # Python dependencies
 ```
@@ -188,3 +208,47 @@ glb_path = export_mesh(
 2. Create a feature branch: `git checkout -b feature/my-feature`
 3. Commit your changes: `git commit -m "feat: add my feature"`
 4. Push and open a Pull Request
+
+---
+
+## 👥 Authors
+
+| Name | Role |
+|------|------|
+| **Nikhil Kushawaha** | Lead Developer — Detection pipeline, backend, project architecture |
+| **Siddhartha Kunwar** | 3D Reconstruction — NeRF training & mesh export |
+| **Vansh Trivedi** | Frontend — Three.js viewer & UI |
+| **Ansh Kumar Pandey** | Data collection, dataset preparation & validation |
+
+📌 B.Tech (AI & ML) — Ajay Kumar Garg Engineering College, Ghaziabad
+🔗 Portfolio: [nikverse.me](https://nikverse.me) · GitHub: [github.com/nikhilkushawaha](https://github.com/nikhilkushawaha)
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License**.
+
+```
+MIT License
+
+Copyright (c) 2025 Nikhil Kushawaha, Siddhartha Kunwar, Vansh Trivedi, Ansh Kumar Pandey
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
